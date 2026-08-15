@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C1917">
+<title>Cupping QC — 4th Street Roastery</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cupping QC">
+<meta name="mobile-web-app-capable" content="yes">
+
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"></span>
+    <div class="brand-text">
+      <strong>Cupping QC</strong>
+      <span>4th Street Roastery</span>
+    </div>
+  </div>
+  <div class="session-chip" id="sessionChip" title="Work is saved to this device automatically">
+    <span class="dot"></span>
+    <span id="sessionLabel">2026-08-15 · Matina HQ</span>
+    <span class="save-state" id="saveState">Saved</span>
+  </div>
+</header>
+
+<nav class="steps" id="steps"></nav>
+
+<main id="main">
+
+  <!-- ── 1 · SESSIONS ─────────────────────────────────────── -->
+  <section class="screen is-active" id="screen-sessions">
+    <div class="screen-head">
+      <div>
+        <h1>Sessions</h1>
+        <p class="sub">Archived cupping sessions, stored on this device.</p>
+      </div>
+      <div class="export-bar">
+        <button class="btn" id="btnNewSession">Start fresh</button>
+        <button class="btn btn-primary" data-goto="setup">Continue current</button>
+      </div>
+    </div>
+
+    <div class="search">
+      <input type="search" id="sessionSearch" placeholder="Search by lot, profile, or date…" aria-label="Search sessions">
+    </div>
+
+    <ul class="session-list" id="sessionList"></ul>
+  </section>
+
+  <!-- ── 2 · SETUP ────────────────────────────────────────── -->
+  <section class="screen" id="screen-setup">
+    <div class="screen-head">
+      <div>
+        <h1>Session setup</h1>
+        <p class="sub">Table of 2–6 samples. Rest time is computed from roast date.</p>
+      </div>
+      <button class="btn btn-primary" data-goto="cup">Start cupping</button>
+    </div>
+
+    <div class="mode-toggle" id="modeToggle">
+      <button data-mode="calibration">
+        <strong>Table cupping</strong>
+        <span>2–6 different coffees · full 8-attribute CVA · produces a score</span>
+      </button>
+      <button data-mode="screening">
+        <strong>Batch screening</strong>
+        <span>One lot, many batches · fast verdict · no CVA score</span>
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="field-row">
+        <label class="field">
+          <span>Date</span>
+          <input type="date" value="2026-08-15">
+        </label>
+        <label class="field">
+          <span>Location</span>
+          <input type="text" value="Central Roastery HQ — Matina">
+        </label>
+        <label class="field">
+          <span>Taster</span>
+          <input type="text" value="Gerome">
+        </label>
+      </div>
+    </div>
+
+    <!-- Table cupping -->
+    <div id="panel-calibration">
+      <h2 class="section-title">Samples <span class="count" id="sampleCount">4</span></h2>
+      <div class="sample-grid" id="sampleGrid"></div>
+      <button class="btn btn-ghost btn-block" id="addSample">+ Add sample</button>
+    </div>
+
+    <!-- Batch screening -->
+    <div id="panel-screening" hidden>
+      <h2 class="section-title">Lots &amp; profiles <span class="count" id="lotCount">1</span></h2>
+      <div class="sample-grid" id="lotGrid"></div>
+      <button class="btn btn-ghost btn-block" id="addLot">+ Add lot / profile</button>
+
+      <div class="range-actions">
+        <span id="rangeSummary" class="sub">—</span>
+        <button class="btn btn-primary" id="generateBatches">Generate batches</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3s · SCREEN (batch triage) ───────────────────────── -->
+  <section class="screen" id="screen-screen">
+    <div class="screen-head">
+      <div>
+        <h1 id="screenTitle">Batch screening</h1>
+        <p class="sub" id="screenMeta">—</p>
+      </div>
+      <button class="btn btn-primary" data-goto="results">See results</button>
+    </div>
+
+    <div class="banner banner-info">
+      <strong>Verdict is your direct call</strong>
+      <span>Acidity, Sweetness and Body are trend indicators only. Three of eight attributes cannot produce a CVA score — nothing here is a cup score.</span>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="screenProgressFill"></div>
+    </div>
+    <p class="sub" id="screenProgress" style="margin-bottom:16px">—</p>
+
+    <div class="sample-tabs" id="lotFilter"></div>
+    <div id="batchGroups"></div>
+  </section>
+
+  <!-- ── 3 · CUP ──────────────────────────────────────────── -->
+  <section class="screen" id="screen-cup">
+    <div class="sample-tabs" id="sampleTabs"></div>
+
+    <div class="cup-head">
+      <div>
+        <h1 id="cupSampleName">Sample A</h1>
+        <p class="sub" id="cupSampleMeta">—</p>
+      </div>
+      <div class="live-score">
+        <span class="live-score-label">Live score</span>
+        <strong id="liveScore">—</strong>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div><span class="legend-key legend-intensity"></span> Intensity — how much is present <em>(0–15)</em></div>
+      <div><span class="legend-key legend-quality"></span> Quality — how good it is <em>(1–9)</em></div>
+    </div>
+
+    <div class="attr-grid" id="attrGrid"></div>
+  </section>
+
+  <!-- ── 4 · CUP CHECK ────────────────────────────────────── -->
+  <section class="screen" id="screen-cups">
+    <div class="screen-head">
+      <div>
+        <h1>Cup check</h1>
+        <p class="sub">Three cups per sample. Deductions apply automatically.</p>
+      </div>
+      <button class="btn btn-primary" data-goto="results">See results</button>
+    </div>
+
+    <div class="deduction-note">
+      <span class="pill pill-warn">−2</span> per non-uniform cup
+      <span class="pill pill-bad">−4</span> per defective cup
+    </div>
+
+    <div class="cupcheck-grid" id="cupcheckGrid"></div>
+  </section>
+
+  <!-- ── 5 · RESULTS ──────────────────────────────────────── -->
+  <section class="screen" id="screen-results">
+    <div class="screen-head">
+      <div>
+        <h1>Results</h1>
+        <p class="sub" id="resultsSub">Ranked by CVA affective score.</p>
+      </div>
+      <div class="export-bar">
+        <button class="btn" id="btnCopy">Copy Markdown</button>
+        <button class="btn" id="btnDownload">Download .md</button>
+        <button class="btn btn-primary" id="btnSaveVault" hidden>Save to vault</button>
+      </div>
+    </div>
+
+    <p class="export-status" id="exportStatus" hidden></p>
+
+    <div class="banner banner-warn" id="restBanner">
+      <strong>🔶 PRELIM — rest under 72 h</strong>
+      <span>Sample C was roasted 41 h ago. No binding disposition. Re-cup Aug 18–20.</span>
+    </div>
+
+    <!-- Table cupping results -->
+    <div id="results-calibration">
+      <div class="results-table" id="resultsTable"></div>
+
+      <div class="formula-card">
+        <h3>Score formula — SCA Standard 104-2024</h3>
+        <code>0.65625 × Σ(8 affective sections) + 52.75 − 2·nonUniform − 4·defective</code>
+        <p>Σ ranges 8–72, so the scale runs 58.00–100.00 before deductions. Rounded to nearest 0.25.</p>
+      </div>
+    </div>
+
+    <!-- Batch screening results -->
+    <div id="results-screening" hidden>
+      <div class="banner banner-bad" id="incompleteBanner" style="display:none"></div>
+      <div class="stat-row" id="statRow"></div>
+      <div id="lotComparison"></div>
+      <div id="reasonBreakdown"></div>
+      <h2 class="section-title">All batches</h2>
+      <div class="results-table" id="batchResultsTable"></div>
+    </div>
+  </section>
+
+</main>
+
+<script src="store.js"></script>
+<script src="export.js"></script>
+<script src="app.js"></script>
+
+<script>
+// Service workers need HTTPS or localhost. Opening index.html from the file
+// system is still fully functional — just without offline install.
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err =>
+      console.warn('[sw] registration failed', err));
+  });
+
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+    location.reload();
+  });
+}
+</script>
+</body>
+</html>
