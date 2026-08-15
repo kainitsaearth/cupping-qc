@@ -404,6 +404,23 @@ main { padding: 20px clamp(16px, 4vw, 32px) 40px; max-width: 1180px; margin: 0 a
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 15px 17px 17px;
+  transition: border-color .2s;
+}
+
+/* Pulse on the card you were just sent to, so the target is unmistakable. */
+.attr.is-target {
+  border-color: var(--warn);
+  animation: attr-pulse 1.6s ease-out;
+}
+
+@keyframes attr-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--warn) 50%, transparent); }
+  70%  { box-shadow: 0 0 0 12px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attr.is-target { animation: none; }
 }
 
 .attr-head {
@@ -482,9 +499,21 @@ main { padding: 20px clamp(16px, 4vw, 32px) 40px; max-width: 1180px; margin: 0 a
 .cup-footer .btn { white-space: nowrap; }
 .cup-footer .btn:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
 
-.cup-footer-mid { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; min-width: 0; }
+.cup-footer-mid { display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; min-width: 0; }
 .cup-footer-mid strong { font-size: 13.5px; }
 .cup-footer-mid span { font-size: 11.5px; color: var(--muted); }
+
+.jump-link {
+  padding: 3px 10px;
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  border-radius: 999px;
+  background: var(--warn-soft);
+  color: var(--warn);
+  font: inherit; font-size: 11.5px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+  transition: all .13s;
+}
+.jump-link:hover { background: var(--warn); color: #fff; border-color: var(--warn); }
 
 /* ── Sample rail (floating quick-jump) ───────────────────── */
 

@@ -876,6 +876,7 @@ function renderCup() {
   grid.replaceChildren(...AFFECTIVE_ATTRS.map(attr => {
     const hasIntensity = INTENSITY_ATTRS.includes(attr);
     const card = el('article', 'attr');
+    card.dataset.attr = attr;
 
     const head = el('div', 'attr-head');
     head.innerHTML = `<h3>${attr}</h3>
@@ -935,10 +936,35 @@ function renderCup() {
 
 const scoredCount = s => AFFECTIVE_ATTRS.filter(a => s.affective[a] != null).length;
 
+/** First attribute still missing a quality rating, in form order. */
+const firstGap = s => AFFECTIVE_ATTRS.find(a => s.affective[a] == null) || null;
+
+/** Centres an attribute card and pulses it so the target is obvious on arrival. */
+function scrollToAttr(attr) {
+  const card = $(`.attr[data-attr="${CSS.escape(attr)}"]`);
+  if (!card) return window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.classList.remove('is-target');
+  void card.offsetWidth;              // restart the animation if it's still running
+  card.classList.add('is-target');
+  setTimeout(() => card.classList.remove('is-target'), 1600);
+}
+
+/**
+ * Switching samples lands you where the work actually is: a partly-scored
+ * sample jumps to its first unrated attribute rather than the top of a form
+ * you have already filled in.
+ */
 function goToSample(index) {
   mutate(() => { state.activeSample = index; });
-  // Land at the top of the form rather than mid-way down the previous scroll.
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  const s = state.samples[index];
+  const gap = firstGap(s);
+
+  // Untouched or complete samples start at the top; partial ones jump to the gap.
+  if (gap && scoredCount(s) > 0) scrollToAttr(gap);
+  else window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /** Vertical rail — random access to any sample without scrolling up. */
@@ -947,10 +973,13 @@ function renderSampleRail() {
 
   rail.replaceChildren(...state.samples.map((s, i) => {
     const done = scoredCount(s);
+    const gap = firstGap(s);
     const cls = done === AFFECTIVE_ATTRS.length ? 'is-done' : done > 0 ? 'is-partial' : '';
 
     const b = el('button', `rail-btn ${cls}` + (i === state.activeSample ? ' is-active' : ''), s.tag);
-    b.title = `${nameOf(s)} — ${done}/${AFFECTIVE_ATTRS.length} scored`;
+    b.title = done === AFFECTIVE_ATTRS.length
+      ? `${nameOf(s)} — fully scored`
+      : `${nameOf(s)} — ${done}/${AFFECTIVE_ATTRS.length} scored${done > 0 ? ` · resumes at ${gap}` : ''}`;
     b.setAttribute('aria-label', b.title);
     b.setAttribute('aria-current', i === state.activeSample ? 'true' : 'false');
     b.onclick = () => goToSample(i);
@@ -975,9 +1004,20 @@ function renderCupFooter() {
   prev.disabled = i === 0;
   prev.onclick = () => goToSample(i - 1);
 
-  const mid = el('div', 'cup-footer-mid', `
-    <strong>Sample ${i + 1} of ${state.samples.length}</strong>
-    <span>${remaining ? `${remaining} attribute${remaining > 1 ? 's' : ''} left` : 'Fully scored'}</span>`);
+  const mid = el('div', 'cup-footer-mid');
+  mid.append(el('strong', null, `Sample ${i + 1} of ${state.samples.length}`));
+
+  const gap = firstGap(s);
+
+  if (gap) {
+    // Jumping straight to the next unrated attribute beats hunting for it.
+    const jump = el('button', 'jump-link',
+      `${remaining} left — go to ${gap}`);
+    jump.onclick = () => scrollToAttr(gap);
+    mid.append(jump);
+  } else {
+    mid.append(el('span', null, 'Fully scored'));
+  }
 
   const next = el('button', 'btn btn-primary',
     isLast ? 'Cup check →' : `Next — ${state.samples[i + 1].tag} →`);
