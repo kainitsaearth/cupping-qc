@@ -544,6 +544,10 @@ function render({ setup = false } = {}) {
  */
 function renderDerived() {
   if (state.mode === 'calibration') {
+    // Rail and footer show scoring progress, so they must track every tap —
+    // but neither is an input surface, so rebuilding them is safe here.
+    renderSampleRail();
+    renderCupFooter();
     renderCupCheck();
     renderResults();
   } else {
@@ -923,6 +927,63 @@ function renderCup() {
   }));
 
   updateLiveScore();
+  renderSampleRail();
+  renderCupFooter();
+}
+
+/* ── Sample navigation ───────────────────────────────────── */
+
+const scoredCount = s => AFFECTIVE_ATTRS.filter(a => s.affective[a] != null).length;
+
+function goToSample(index) {
+  mutate(() => { state.activeSample = index; });
+  // Land at the top of the form rather than mid-way down the previous scroll.
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/** Vertical rail — random access to any sample without scrolling up. */
+function renderSampleRail() {
+  const rail = $('#sampleRail');
+
+  rail.replaceChildren(...state.samples.map((s, i) => {
+    const done = scoredCount(s);
+    const cls = done === AFFECTIVE_ATTRS.length ? 'is-done' : done > 0 ? 'is-partial' : '';
+
+    const b = el('button', `rail-btn ${cls}` + (i === state.activeSample ? ' is-active' : ''), s.tag);
+    b.title = `${nameOf(s)} — ${done}/${AFFECTIVE_ATTRS.length} scored`;
+    b.setAttribute('aria-label', b.title);
+    b.setAttribute('aria-current', i === state.activeSample ? 'true' : 'false');
+    b.onclick = () => goToSample(i);
+    return b;
+  }));
+}
+
+/** End-of-form navigation — the natural next action after scoring Overall. */
+function renderCupFooter() {
+  // renderDerived() can reach this after a sample was removed.
+  const i = Math.min(state.activeSample, state.samples.length - 1);
+  const s = state.samples[i];
+  if (!s) return;
+
+  const remaining = AFFECTIVE_ATTRS.length - scoredCount(s);
+  const isLast = i >= state.samples.length - 1;
+
+  const footer = $('#cupFooter');
+  footer.replaceChildren();
+
+  const prev = el('button', 'btn', i > 0 ? `← ${state.samples[i - 1].tag}` : '← Previous');
+  prev.disabled = i === 0;
+  prev.onclick = () => goToSample(i - 1);
+
+  const mid = el('div', 'cup-footer-mid', `
+    <strong>Sample ${i + 1} of ${state.samples.length}</strong>
+    <span>${remaining ? `${remaining} attribute${remaining > 1 ? 's' : ''} left` : 'Fully scored'}</span>`);
+
+  const next = el('button', 'btn btn-primary',
+    isLast ? 'Cup check →' : `Next — ${state.samples[i + 1].tag} →`);
+  next.onclick = () => isLast ? go('cups') : goToSample(i + 1);
+
+  footer.append(prev, mid, next);
 }
 
 function updateLiveScore() {

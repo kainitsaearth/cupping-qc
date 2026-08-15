@@ -3,7 +3,7 @@
    Bump CACHE when shipping a change, or clients keep the old copy.
    ============================================================ */
 
-const CACHE = 'cupping-qc-v1';
+const CACHE = 'cupping-qc-v2';
 
 const ASSETS = [
   './',
