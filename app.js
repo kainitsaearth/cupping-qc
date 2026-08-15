@@ -551,6 +551,10 @@ function renderDerived() {
     renderCupCheck();
     renderResults();
   } else {
+    // Progress bar and jump button track completion, so they refresh on every
+    // verdict — but the batch cards themselves are updated in place.
+    renderScreeningProgress();
+    renderScreenJump();
     renderScreeningResults();
   }
 }
@@ -734,10 +738,78 @@ function renderLotFilter() {
   $('#lotFilter').hidden = state.lots.length < 2;
 }
 
-function renderScreening() {
+function renderScreeningProgress() {
   const total = state.batches.length;
   const done = state.batches.filter(batchComplete).length;
 
+  $('#screenProgressFill').style.width = total ? `${(done / total) * 100}%` : '0';
+  $('#screenProgress').textContent = `${done} of ${total} batches evaluated`;
+}
+
+/* ── Batch navigation ────────────────────────────────────── */
+
+const batchKey = b => `${b.lotId}:${b.no}`;
+const batchNo = b => `#${String(b.no).padStart(3, '0')}`;
+
+/**
+ * Next batch needing attention — either no verdict, or a fail with no cause.
+ * Searches the visible lot first so filtering stays meaningful, then falls
+ * back to any lot and switches the filter to follow.
+ */
+function nextIncomplete() {
+  const inFilter = state.batches.filter(b =>
+    state.lotFilter == null || b.lotId === state.lotFilter);
+
+  return inFilter.find(b => !batchComplete(b))
+      || state.batches.find(b => !batchComplete(b))
+      || null;
+}
+
+function scrollToBatch(b) {
+  const card = $(`.batch-card[data-batch="${CSS.escape(batchKey(b))}"]`);
+  if (!card) return;
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.classList.remove('is-target');
+  void card.offsetWidth;
+  card.classList.add('is-target');
+  setTimeout(() => card.classList.remove('is-target'), 1600);
+}
+
+function jumpToBatch(b) {
+  // If the target sits outside the active filter, follow it rather than
+  // scrolling to a card that isn't on screen.
+  if (state.lotFilter != null && b.lotId !== state.lotFilter) {
+    mutate(() => { state.lotFilter = b.lotId; });
+  }
+  scrollToBatch(b);
+}
+
+function renderScreenJump() {
+  const btn = $('#screenJump');
+
+  if (!state.batches.length) { btn.hidden = true; return; }
+
+  const remaining = state.batches.filter(b => !batchComplete(b));
+  btn.hidden = false;
+
+  if (!remaining.length) {
+    btn.className = 'screen-jump is-done';
+    btn.innerHTML = `<span class="jump-count">All ${state.batches.length}</span> evaluated — see results →`;
+    btn.onclick = () => go('results');
+    return;
+  }
+
+  const target = nextIncomplete();
+  const needsCause = target.verdict === 'fail' && !target.reason;
+
+  btn.className = 'screen-jump' + (needsCause ? ' is-cause' : '');
+  btn.innerHTML = `<span class="jump-count">${remaining.length}</span> ${
+    needsCause ? `cause needed — ${batchNo(target)} →` : `left — next ${batchNo(target)} →`}`;
+  btn.onclick = () => jumpToBatch(target);
+}
+
+function renderScreening() {
   $('#screenTitle').textContent = state.lots.length > 1
     ? `Batch screening — ${state.lots.length} lots`
     : lotLabel(state.lots[0] || { lotName: '' });
@@ -746,9 +818,8 @@ function renderScreening() {
     .map(l => `${lotLabel(l)} (${batchesOf(l.id).length})`)
     .join(' · ');
 
-  $('#screenProgressFill').style.width = total ? `${(done / total) * 100}%` : '0';
-  $('#screenProgress').textContent = `${done} of ${total} batches evaluated`;
-
+  renderScreeningProgress();
+  renderScreenJump();
   renderLotFilter();
 
   const visible = state.lots.filter(l => state.lotFilter == null || state.lotFilter === l.id);
@@ -775,7 +846,11 @@ function renderScreening() {
 function renderBatchCard(b, lot) {
   {
     const card = el('article', 'batch-card' + (b.verdict ? ` v-${b.verdict}` : ''));
+    card.dataset.batch = batchKey(b);
     if (b.verdict === 'fail' && !b.reason) card.classList.add('needs-reason');
+
+    /** Swap just this card, rather than rebuilding every batch on the screen. */
+    const refreshCard = () => card.replaceWith(renderBatchCard(b, lot));
 
     card.append(el('div', 'batch-head',
       `<h3>Batch #${String(b.no).padStart(3, '0')}</h3>
@@ -789,7 +864,8 @@ function renderBatchCard(b, lot) {
       btn.onclick = () => mutate(() => {
         b.verdict = b.verdict === v.key ? null : v.key;
         if (b.verdict !== 'fail') b.reason = null;
-      });
+        refreshCard();
+      }, { light: true });
       verdicts.append(btn);
     });
     card.append(verdicts);
@@ -833,7 +909,10 @@ function renderBatchCard(b, lot) {
         if (b.reason === r) o.selected = true;
         sel.append(o);
       });
-      sel.onchange = () => mutate(() => { b.reason = sel.value || null; });
+      sel.onchange = () => mutate(() => {
+        b.reason = sel.value || null;
+        refreshCard();
+      }, { light: true });
 
       wrap.append(sel);
       card.append(wrap);

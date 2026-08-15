@@ -760,6 +760,50 @@ main { padding: 20px clamp(16px, 4vw, 32px) 40px; max-width: 1180px; margin: 0 a
 .batch-card.v-fail   { border-left-color: var(--bad); }
 .batch-card.needs-reason { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
 
+.batch-card.is-target {
+  border-color: var(--accent);
+  animation: attr-pulse 1.6s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .batch-card.is-target { animation: none; }
+}
+
+/* ── Floating jump button ────────────────────────────────── */
+
+.screen-jump {
+  position: fixed;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: flex; align-items: center; gap: 9px;
+  min-height: var(--tap);
+  padding: 0 20px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit; font-size: 13.5px; font-weight: 600;
+  box-shadow: 0 4px 20px -4px rgba(0,0,0,.4), var(--shadow);
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.screen-jump:hover { background: var(--accent-ink); }
+.screen-jump:active { transform: translateX(-50%) translateY(1px); }
+
+.screen-jump .jump-count {
+  padding: 2px 9px; border-radius: 999px;
+  background: rgba(255,255,255,.22);
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+
+.screen-jump.is-cause { background: var(--bad); border-color: var(--bad); }
+.screen-jump.is-cause:hover { filter: brightness(.92); }
+
+.screen-jump.is-done { background: var(--good); border-color: var(--good); }
+.screen-jump.is-done:hover { filter: brightness(.92); }
+
+#screen-screen { padding-bottom: 74px; }
+
 .batch-head {
   display: flex; align-items: baseline; justify-content: space-between;
   margin-bottom: 11px;
