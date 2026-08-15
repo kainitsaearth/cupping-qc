@@ -3,15 +3,15 @@
    Bump CACHE when shipping a change, or clients keep the old copy.
    ============================================================ */
 
-const CACHE = 'cupping-qc-v5';
+const CACHE = 'cupping-qc-v6';
 
 const ASSETS = [
   './',
   './index.html',
-  './styles.css',
-  './store.js',
-  './export.js',
-  './app.js',
+  './styles.css?v=6',
+  './store.js?v=6',
+  './export.js?v=6',
+  './app.js?v=6',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',

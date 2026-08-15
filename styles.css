@@ -517,13 +517,25 @@ main { padding: 20px clamp(16px, 4vw, 32px) 40px; max-width: 1180px; margin: 0 a
 
 /* ── Sample rail (floating quick-jump) ───────────────────── */
 
+/* The Cup screen is a two-column grid: form on the left, rail on the right.
+   The rail occupies real layout space rather than floating over the page,
+   so it cannot overlap the form at any width or zoom level. Earlier versions
+   positioned it against the viewport and kept colliding with the content. */
+#screen-cup.is-active {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 14px;
+  align-items: start;
+}
+
+#screen-cup > :not(.sample-rail) { grid-column: 1; }
+
 .sample-rail {
-  position: fixed;
-  top: 50%;
-  /* Sit just outside the centred 1180px content column rather than at the
-     viewport edge, so it tracks the content instead of overlapping it. */
-  right: max(14px, calc((100vw - 1180px) / 2 - 60px));
-  transform: translateY(-50%);
+  grid-column: 2;
+  grid-row: 1 / -1;
+  position: sticky;
+  top: 88px;                 /* clears the sticky topbar + step nav */
+  align-self: start;
   display: flex; flex-direction: column; gap: 6px;
   padding: 7px 6px;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
@@ -923,17 +935,20 @@ main { padding: 20px clamp(16px, 4vw, 32px) 40px; max-width: 1180px; margin: 0 a
   grid-template-columns: minmax(120px, 1.6fr) 62px 1.2fr 1.1fr 1.2fr;
 }
 
-/* The rail is fixed to the viewport edge while the content column is centred
-   at max-width 1180px. It only clears the content once the side margin
-   exceeds the rail's ~68px footprint — so 1180 + 2×68 ≈ 1316px, plus room
-   for a scrollbar. Below that it moves to the bottom, closer to the thumb
-   on a held tablet anyway. */
-@media (max-width: 1360px) {
+/* Narrow screens drop the side column and float the rail along the bottom,
+   where it is closer to the thumb on a held tablet. Fixed positioning is
+   safe here because it spans the full width and overlaps nothing. */
+@media (max-width: 900px) {
+  #screen-cup.is-active { display: block; }
+
   .sample-rail {
+    position: fixed;
     top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    right: 50%; transform: translateX(50%);
+    left: 50%; right: auto;
+    transform: translateX(-50%);
     flex-direction: row;
   }
+
   #screen-cup { padding-bottom: 74px; }
 }
 
